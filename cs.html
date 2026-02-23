@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh">
+<body>
+    <h1>👥 小组成员管理 (极简版)</h1>
+    
+    <input type="text" id="nameInput" placeholder="输入成员姓名">
+    <button onclick="addMember()">点击添加</button>
+    
+    <hr>
+    <div id="status">正在同步云端...</div>
+    <ul id="memberList"></ul>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://klsvprpkqgqnfhkiaehf.supabase.co'
+        const SUPABASE_KEY = 'sb_publishable_yAaCFMoeNHK6LEtLuKe8og_0N19SL2i' // 填入你之前的 Key
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        // 1. 获取并显示成员列表
+        async function refreshList() {
+            const { data, error } = await supabaseClient.from('login').select('*')
+            if (error) {
+                document.getElementById('status').innerText = '读取失败: ' + error.message
+                return
+            }
+            const listHtml = data.map(m => `<li>${m.name}</li>`).join('')
+            document.getElementById('memberList').innerHTML = listHtml
+            document.getElementById('status').innerText = `当前共有 ${data.length} 名成员`
+        }
+
+        // 2. 往数据库添加成员
+        async function addMember() {
+            const name = document.getElementById('nameInput').value
+            if (!name) return alert('请输入名字')
+
+            const { error } = await supabaseClient
+                .from('members')
+                .insert([{ name: name }]) // 注意：确保你的表里有 name 这一列
+
+            if (error) {
+                alert('添加失败，请检查是否开启了 RLS 写入权限')
+                console.error(error)
+            } else {
+                document.getElementById('nameInput').value = ''
+                refreshList() // 添加成功后刷新列表
+            }
+        }
+
+        refreshList() // 页面加载时先读取一次
+    </script>
+</body>
+</html>
